@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -24,6 +25,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FabPosition
 import androidx.compose.material3.FloatingActionButton
@@ -36,6 +38,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -45,6 +49,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -54,7 +59,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.google.firebase.Firebase
+import com.google.firebase.firestore.firestore
 import com.rajat.composecrud.ui.theme.ComposeCRUDTheme
+import com.rajat.composecrud.viewmodel.UserViewModel
 
 class MainActivity : ComponentActivity() {
 
@@ -70,16 +79,29 @@ class MainActivity : ComponentActivity() {
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun ComposeCRUD(){
+    var db = Firebase.firestore
+    var context = LocalContext.current
+    val userViewModel: UserViewModel = viewModel()
+    val firebaseStatus by userViewModel.userAs.observeAsState()
+    val users by userViewModel.userList.collectAsState()
     var showDialog by remember { mutableStateOf(false) }
     var alertShow by remember { mutableStateOf(false) }
-    var userList = remember { mutableStateListOf<String>() }
+    var userList = remember { mutableListOf<UserModel?>() }
     var index by remember { mutableStateOf<Int?>(-1) }
     var userName by remember { mutableStateOf("") }
     var userError by remember { mutableStateOf<String?>(null) }
+    //LaunchedEffect(Unit) {
+    val isLoading by userViewModel.isLoading.collectAsState()
+
+
+
+
+
+
 
     if (showDialog) {
         if (index!! > -1) {
-        userName = userList[index!!]
+        userName = userList[index!!]?.name.toString()
     }
         Dialog(
             onDismissRequest = {
@@ -88,7 +110,6 @@ fun ComposeCRUD(){
             properties = DialogProperties(usePlatformDefaultWidth = false)
 
         ) {
-
             Card(
                 Modifier
                     .fillMaxWidth()
@@ -136,15 +157,15 @@ fun ComposeCRUD(){
                                 userError = "Enter User Name"
                             }else {
                                 if (index!! > -1) {
-                                    userList.set(index!!, userName)
+                                  //  userList.set(index!!, userName)
                                     userName = ""
                                     showDialog = false
                                 } else {
-                                    userList.add(userName.trim())
-                                    println("Check List: ${userList}")
-                                    //  showDailog = false
+                                    var userModel = UserModel(name = userName)
+                                   userViewModel.addUsers(context,userModel)
                                     userName = ""
                                     showDialog = false
+
                                 }
                             }
                         },
@@ -196,34 +217,41 @@ fun ComposeCRUD(){
 
     )
     {innerPadding->
-        LazyColumn(
-            contentPadding = innerPadding,
-            modifier = Modifier.fillMaxSize()
-        ) {
-            items(userList.size) { position ->
-                Card(
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(8.dp).pointerInput(Unit){
-                            detectTapGestures(
-                                onLongPress = {
-                                    alertShow = true
-                                    index = position
-                                },
-                                onTap = {
-                                    index = position
-                                    showDialog = true
-                                }
-                            )
-                        },
-                    elevation = CardDefaults.cardElevation(4.dp),
+        if(isLoading) {
+            Box(Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center){
+                CircularProgressIndicator()
+            }
+        }else {
+            LazyColumn(
+                contentPadding = innerPadding,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                items(users!!.size) { position ->
+                    Card(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp).pointerInput(Unit) {
+                                detectTapGestures(
+                                    onLongPress = {
+                                        alertShow = true
+                                        index = position
+                                    },
+                                    onTap = {
+                                        index = position
+                                        showDialog = true
+                                    }
+                                )
+                            },
+                        elevation = CardDefaults.cardElevation(4.dp),
 
-                ) {
-                    Text(
-                        userList[position].toString(),
-                        modifier = Modifier.padding(16.dp),
-                        style = MaterialTheme.typography.bodyLarge
-                    )
+                        ) {
+                        Text(
+                            users!![position]?.name.toString(),
+                            modifier = Modifier.padding(16.dp),
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
                 }
             }
         }
