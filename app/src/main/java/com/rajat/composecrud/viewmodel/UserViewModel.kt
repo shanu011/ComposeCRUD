@@ -1,6 +1,7 @@
 package com.rajat.composecrud.viewmodel
 
 import android.content.Context
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -42,6 +43,20 @@ class UserViewModel :ViewModel() {
         userRepo.addUsers(context,userModel){result->
             _isLoading.value = false
             println("Check Data Added or Not: $result")
+        }
+    }
+    fun updateUsers(context: Context,userId:String,userModel:UserModel){
+        _isLoading.value = true
+        userRepo.updateUsers(context,userId,userModel){result->
+            _isLoading.value = false
+            println("Check Data Added or Not: $result")
+        }
+    }
+    fun deleteUsers(context: Context,userId: String){
+        _isLoading.value = true
+        userRepo.deleteUsers(context,userId){result->
+            _isLoading.value = false
+            println("Check Result Deleted or not: $result")
         }
     }
 }

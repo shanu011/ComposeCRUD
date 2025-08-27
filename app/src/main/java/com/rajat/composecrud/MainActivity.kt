@@ -82,7 +82,6 @@ fun ComposeCRUD(){
     var db = Firebase.firestore
     var context = LocalContext.current
     val userViewModel: UserViewModel = viewModel()
-    val firebaseStatus by userViewModel.userAs.observeAsState()
     val users by userViewModel.userList.collectAsState()
     var showDialog by remember { mutableStateOf(false) }
     var alertShow by remember { mutableStateOf(false) }
@@ -92,11 +91,6 @@ fun ComposeCRUD(){
     var userError by remember { mutableStateOf<String?>(null) }
     //LaunchedEffect(Unit) {
     val isLoading by userViewModel.isLoading.collectAsState()
-
-
-
-
-
 
 
     if (showDialog) {
@@ -157,7 +151,8 @@ fun ComposeCRUD(){
                                 userError = "Enter User Name"
                             }else {
                                 if (index!! > -1) {
-                                  //  userList.set(index!!, userName)
+                                    var userModel = UserModel(id = users?.get(index!!)?.id.toString(),name = userName)
+                                    userViewModel.updateUsers(context,users?.get(index!!)?.id.toString(),userModel)
                                     userName = ""
                                     showDialog = false
                                 } else {
@@ -265,7 +260,7 @@ if(alertShow){
         },
         confirmButton = {
             TextButton(onClick = {
-                userList.removeAt( index = index!!)
+                userViewModel.deleteUsers(context, userList[index!!]?.id.toString())
                 alertShow = false
             }
             ) {
